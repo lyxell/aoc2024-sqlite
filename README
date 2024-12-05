@@ -1,0 +1,13 @@
+RUNNING
+
+install sqlite3, e.g.
+$ sudo apt install -y sqlite3
+
+then pass the sql code into sqlite, e.g.
+$ sqlite3 < 01_01.sql
+
+---
+
+regex0.so is loaded to provide support for regular expressions,
+you can find the dll for your os here
+https://github.com/asg017/sqlite-regex/releases/tag/v0.2.3
