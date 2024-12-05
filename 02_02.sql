@@ -19,33 +19,21 @@ L(row, discard, col, curr, prev) as (
 	-- generate index of columns to discard
 	join generate_series(0, 7) as D
 	where D.value != M.rowid
-),
-
--- find all (row, discard) pairs with rule violations
--- where discard is the index of the discarded column
-I as (
-	select row, discard from L where (abs(prev - curr) > 3)
-	union
-	select * from (
-		select row, discard from L where (prev <= curr)
-		intersect
-		select row, discard from L where (prev >= curr)
-	)
-),
-
--- the idea here is that if we can count 8 distinct
--- pairs for one row, the row has rule violations no matter
--- which column we discard
-V as (
-	select
-		row,
-		count(distinct discard) as violating
-	from I group by row
 )
 
-select count (*)
-from (
-	select row from L
-	except
-	select row from V where violating == 8
+-- group by row and find all rows without rule violations
+select count(distinct row) from (
+	select
+		L.row,
+		-- we construct these values to be able to do boolean aggregation
+		-- this let's us express statements that should hold true for all
+		-- elements
+		case when (abs(prev - curr) > 3) then 1 else 0 end as diff,
+		case when (prev <= curr) then 1 else 0 end as incr,
+		case when (prev >= curr) then 1 else 0 end as decr
+	from L
+	group by L.row, L.discard
+	having
+		sum(diff) == 0 and
+		(sum(incr) == 0 or sum(decr) == 0)
 );

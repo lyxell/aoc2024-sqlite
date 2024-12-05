@@ -15,22 +15,20 @@ L(row, col, curr, prev) as (
 	from
 		T,
 		regex_find_all("\d+", T.c1) as M
-),
-
--- find all rows with rule violations
-V as (
-	select row from L where (abs(prev - curr) > 3)
-	union
-	select * from (
-		select row from L where (prev <= curr)
-		intersect
-		select row from L where (prev >= curr)
-	)
 )
 
-select count (*)
-from (
-	select row from L
-	except
-	select row from V
+-- group by row and find all rows without rule violations
+select count(*) from (
+	select
+		L.row,
+		-- we construct these values to be able to do boolean aggregation
+		case when (abs(prev - curr) > 3) then 1 else 0 end as diff,
+		case when (prev <= curr) then 1 else 0 end as incr,
+		case when (prev >= curr) then 1 else 0 end as decr
+	from L
+	group by L.row
+	having
+		sum(diff) == 0 and
+		(sum(incr) == 0 or sum(decr) == 0)
 );
+
