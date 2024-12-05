@@ -4,22 +4,20 @@ create table T (c1 text) strict;
 .mode box
 
 -- parse input
-create table MAT (row integer, col integer, value text) strict;
-insert into MAT
-select
-	T.rowid - 1,
-	start,
-	match
-from regex_find_all("(.)", T.c1)
-join T;
-create table X (row integer, col integer) strict;
-create table M (row integer, col integer) strict;
-create table A (row integer, col integer) strict;
-create table S (row integer, col integer) strict;
-insert into X select row, col from MAT where value = "X";
-insert into M select row, col from MAT where value = "M";
-insert into A select row, col from MAT where value = "A";
-insert into S select row, col from MAT where value = "S";
+with
+
+W(row, col, value) as materialized (
+	select
+		T.rowid - 1,
+		start,
+		match
+	from regex_find_all("(.)", T.c1)
+	join T
+),
+X as materialized (select row, col from W where value = "X"),
+M as materialized (select row, col from W where value = "M"),
+A as materialized (select row, col from W where value = "A"),
+S as materialized (select row, col from W where value = "S")
 
 -- solve
 select count(*) from (
