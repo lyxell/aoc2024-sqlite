@@ -8,8 +8,7 @@ $ sudo apt install -y sqlite3
 then pass the sql code into sqlite, e.g.
 $ sqlite3 < 01_01.sql
 
----
-
-regex0.so is loaded to provide support for regular expressions,
-you can find the dll for your os here
+to get regex support in sqlite we load a dll,
+the one included is for amd64 linux,
+you can find dlls for other operating systems here 
 https://github.com/asg017/sqlite-regex/releases/tag/v0.2.3
