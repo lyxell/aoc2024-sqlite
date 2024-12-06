@@ -35,12 +35,14 @@ S(x, y, dx, dy) as (
 	-- case: the next tile is walkable
 	union
 	select x+dx, y+dy, dx, dy from S
-	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
+	where
+		((x+dx, y+dy, '.') in M or
+		 (x+dx, y+dy, '^') in M)
 
 	-- case: the next tile is blocked, perform rotation (dx, dy) => (-dy, dx)
 	union
 	select x, y, -dy, dx from S
-	join M on mx = x+dx and my = y+dy and mc = '#'
+	where (x+dx, y+dy, '#') in M
 ),
 
 -- O contains the tiles where we will place obstacles
@@ -62,18 +64,21 @@ N(ox, oy, x, y, dx, dy) as (
 	-- case: the next tile is walkable
 	union
 	select ox, oy, x+dx, y+dy, dx, dy from N
-	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
-	where not (ox = x+dx and oy = y+dy)
+	where
+	    not (x+dx, y+dy) = (ox, oy)
+		and
+		((x+dx, y+dy, '.') in M or
+		 (x+dx, y+dy, '^') in M)
 
 	-- case: the next tile is blocked by #, perform rotation (dx, dy) => (-dy, dx)
 	union
 	select ox, oy, x, y, -dy, dx from N
-	join M on mx = x+dx and my = y+dy and mc = '#'
+	where (x+dx, y+dy, '#') in M
 
 	-- case: the next tile is blocked by O, perform rotation (dx, dy) => (-dy, dx)
 	union
 	select ox, oy, x, y, -dy, dx from N
-	where ox = x+dx and oy = y+dy
+	where (x+dx, y+dy) = (ox, oy)
 ),
 
 -- B is the map bounds

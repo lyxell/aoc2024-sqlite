@@ -31,12 +31,14 @@ S(x, y, dx, dy) as (
 	-- case: the next tile is walkable
 	union
 	select x+dx, y+dy, dx, dy from S
-	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
+	where
+		((x+dx, y+dy, '.') in M or
+		 (x+dx, y+dy, '^') in M)
 
 	-- case: the next tile is blocked, perform rotation (dx, dy) => (-dy, dx)
 	union
 	select x, y, -dy, dx from S
-	join M on mx = x+dx and my = y+dy and mc = '#'
+	where (x+dx, y+dy, '#') in M
 )
 
 select count(*) as result from (
