@@ -4,14 +4,14 @@ create table T (c1 text) strict;
 .mode box
 
 -- parse input
-with recursive
+with
 
 -- M is the parsed map
 --
--- x is the column index
--- y is the row index
--- v is the char at (x, y)
-M(x, y, v) as materialized (
+-- mx is the column index
+-- my is the row index
+-- mc is the char at (x, y)
+M(mx, my, mc) as materialized (
 	select
 		R.start,
 		T.rowid - 1,
@@ -26,19 +26,19 @@ M(x, y, v) as materialized (
 -- dx, dy is the direction vector for the guard
 S(x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select x, y, 0, -1 from M where v = '^'
+	select mx, my, 0, -1 from M where mc = '^'
 
 	-- case: the next tile is walkable
 	union
-	select S.x+S.dx, S.y+S.dy, S.dx, S.dy from S
-	join M on (M.v = '.' or M.v = '^') and (M.x = S.x+dx and M.y = S.y+S.dy)
+	select x+dx, y+dy, dx, dy from S
+	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
 
 	-- case: the next tile is blocked, perform rotation (dx, dy) => (-dy, dx)
 	union
-	select S.x, S.y, -S.dy, S.dx from S
-	join M on M.v = '#' and (M.x = S.x+dx and M.y = S.y+S.dy)
+	select x, y, -dy, dx from S
+	join M on mx = x+dx and my = y+dy and mc = '#'
 )
 
-select count(*) from (
+select count(*) as result from (
 	select distinct x, y from S
 );

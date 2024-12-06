@@ -8,10 +8,10 @@ with
 
 -- M is the parsed map
 --
--- x is the column index
--- y is the row index
--- v is the char at (x, y)
-M(x, y, v) as materialized (
+-- mx is the column index
+-- my is the row index
+-- mc is the char at (x, y)
+M(mx, my, mc) as materialized (
 	select
 		R.start,
 		T.rowid - 1,
@@ -30,28 +30,23 @@ M(x, y, v) as materialized (
 -- dx, dy is the direction vector of the guard
 S(x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select x, y, 0, -1 from M where v = '^'
+	select mx, my, 0, -1 from M where mc = '^'
 
 	-- case: the next tile is walkable
 	union
-	select S.x+S.dx, S.y+S.dy, S.dx, S.dy from S
-	join M on (M.v = '.' or M.v = '^') and (M.x = S.x+dx and M.y = S.y+S.dy)
+	select x+dx, y+dy, dx, dy from S
+	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
 
 	-- case: the next tile is blocked, perform rotation (dx, dy) => (-dy, dx)
 	union
-	select S.x, S.y, -S.dy, S.dx from S
-	join M on M.v = '#' and (M.x = S.x+dx and M.y = S.y+S.dy)
+	select x, y, -dy, dx from S
+	join M on mx = x+dx and my = y+dy and mc = '#'
 ),
 
 -- O contains the tiles where we will place obstacles
-O(x, y) as (
+O(ox, oy) as (
 	select distinct x, y from S
-	except select M.x, M.y from M where M.v = '^'
-),
-
--- B is the map bounds
-B(x, y) as (
-	select M.x, M.y from M
+	except select mx, my from M where mc = '^'
 ),
 
 -- N is the recursive solver for the guard walks with
@@ -60,33 +55,36 @@ B(x, y) as (
 -- ox, oy is where the obstacle is placed
 -- x, y is the position of the guard
 -- dx, dy is the direction vector of the guard
---
--- we use a special value (x, y) = (-1, -1) to encode
--- that the guard fell off the map
 N(ox, oy, x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select O.x, O.y, M.x, M.y, 0, -1 from M join O where M.v = '^'
+	select ox, oy, mx, my, 0, -1 from M join O where mc = '^'
 
 	-- case: the next tile is walkable
 	union
-	select N.ox, N.oy, N.x+N.dx, N.y+N.dy, N.dx, N.dy from N
-	join M on (M.v = '.' or M.v = '^') and M.x = N.x+dx and M.y = N.y+N.dy
-	where not (N.ox = N.x+dx and N.oy = N.y+dy)
+	select ox, oy, x+dx, y+dy, dx, dy from N
+	join M on mx = x+dx and my = y+dy and (mc = '.' or mc = '^')
+	where not (ox = x+dx and oy = y+dy)
 
 	-- case: the next tile is blocked by #, perform rotation (dx, dy) => (-dy, dx)
 	union
-	select N.ox, N.oy, N.x, N.y, -N.dy, N.dx from N
-	join M on M.v = '#' and M.x = N.x+dx and M.y = N.y+N.dy
+	select ox, oy, x, y, -dy, dx from N
+	join M on mx = x+dx and my = y+dy and mc = '#'
 
 	-- case: the next tile is blocked by O, perform rotation (dx, dy) => (-dy, dx)
 	union
-	select N.ox, N.oy, N.x, N.y, -N.dy, N.dx from N
-	where N.ox = N.x+dx and N.oy = N.y+dy
+	select ox, oy, x, y, -dy, dx from N
+	where ox = x+dx and oy = y+dy
+),
 
-	-- case: guard fell off the map
-	union
-	select N.ox, N.oy, -1, -1, 0, 0 from N
-	where (N.x+N.dx, N.y+N.dy) not in B
+-- B is the map bounds
+B(x, y) as (
+	select mx, my from M
 )
 
-select (select count(*) from O) - (select count(*) from N where N.x = -1 and N.y = -1);
+select (
+	-- count the number of placed obstacles
+	select count(*) from O
+) - (
+	-- find number of guards that walked off the map
+	select count(*) from N where (x+dx, y+dy) not in B
+) as result;
