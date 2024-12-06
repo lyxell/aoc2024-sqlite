@@ -4,7 +4,7 @@ create table T (c1 text) strict;
 .mode box
 
 -- parse input
-with recursive
+with
 
 -- M contains the characters of the map
 M(y, x, v) as materialized (
@@ -17,14 +17,14 @@ M(y, x, v) as materialized (
 ),
 
 -- G is the position of the guard
-G as materialized (
+G as (
 	select * from M where M.v = '^'
 ),
 
 -- W contains the first walk of the guard
 --
 -- we use this to calculate where to put obstacles
-W(x, y, dx, dy) as materialized (
+W(x, y, dx, dy) as (
 	-- base case, guard is walking upwards
 	select G.x, G.y, 0, -1 from G
 	union
@@ -38,13 +38,13 @@ W(x, y, dx, dy) as materialized (
 ),
 
 -- O contains the tiles where we will place obstacles
-O as materialized (
+O as (
 	select distinct x, y from W
 	except select G.x, G.y from G
 ),
 
 -- B is the map bounds
-B as materialized (
+B as (
 	select M.x, M.y from M
 ),
 
