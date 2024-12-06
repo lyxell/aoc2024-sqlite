@@ -24,7 +24,7 @@ W(x, y, dx, dy) as (
 	join M on (M.v = '.' or M.v = '^') and M.x = W.x+dx and M.y = W.y+W.dy
 	-- case: blocked, 90 deg rotation, (x, y) => (-y, x)
 	union
-	select W.x-W.dy, W.y+W.dx, -W.dy, W.dx from W
+	select W.x, W.y, -W.dy, W.dx from W
 	join M on M.v = '#' and M.x = W.x+dx and M.y = W.y+W.dy
 )
 
