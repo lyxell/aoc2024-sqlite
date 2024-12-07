@@ -1,4 +1,4 @@
-create table T (c1 text) strict;
+create table T (row text);
 .import 03_input.txt T
 .load ./regex0.so
 
@@ -7,9 +7,9 @@ select
 from
 	regex_captures(
 		'mul\(([0-9]{1,3}),([0-9]{1,3})\)',
-		regex_replace_all("don't\(\)(.*?)(do\(\)|$)", prog, "")
+		regex_replace_all("don't\(\)(.*?)(do\(\)|$)", program, "")
 	)
 join (
 	-- concatenate the file into a single line
-	select group_concat(T.c1, '') as prog from T
+	select group_concat(T.row, '') as program from T
 );
