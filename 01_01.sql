@@ -1,24 +1,28 @@
-create table T (c1 text) strict;
+create table T (row text);
 .import 01_input.txt T
 .load ./regex0.so
--- parse input
-with P(c1, c2) as (
+
+-- P contains the problem input
+--
+-- a is the first value of the row
+-- b is the second value of the row
+with P(a, b) as (
 	select
 		regex_capture(captures, 1),
 		regex_capture(captures, 2)
 	from
 		regex_captures(
 			'(\d+)\s+(\d+)',
-			T.c1
+			T.row
 		)
 	join T
 )
--- solution
-select sum(abs(P1.c1-P2.c2))
+
+select sum(abs(a-b))
 from (
-	select c1 from P order by c1
-) P1
+	select a from P order by a
+) as P1
 join (
-	select c2 from P order by c2
-) P2
+	select b from P order by b
+) as P2
 on P1.rowid = P2.rowid;

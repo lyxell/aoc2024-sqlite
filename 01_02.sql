@@ -1,22 +1,27 @@
-create table T (c1 text) strict;
+create table T (row text);
 .import 01_input.txt T
 .load ./regex0.so
--- parse input
-with P(c1, c2) as (
+
+-- P contains the problem input
+--
+-- a is the first value of the row
+-- b is the second value of the row
+with P(a, b) as (
 	select
 		regex_capture(captures, 1),
 		regex_capture(captures, 2)
 	from
 		regex_captures(
 			'(\d+)\s+(\d+)',
-			T.c1
+			T.row
 		)
 	join T
 )
--- solution
-select sum(P.c1*C.occ) from (
-	select c2, count(*) as occ
-    from P
-    group by c2
-) C
-join P on C.c2 = P.c1;
+
+select sum(a*n)
+from (
+	select b, count(*) as n
+	from P
+	group by b
+) as C
+join P on C.b = P.a;
