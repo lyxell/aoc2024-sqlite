@@ -1,4 +1,4 @@
-create table T (c1 text) strict;
+create table T (row text) strict;
 .import 04_input.txt T
 .load ./regex0.so
 .mode box
@@ -6,41 +6,40 @@ create table T (c1 text) strict;
 -- parse input
 with
 
-W(row, col, value) as materialized (
+P(r, c, v) as materialized (
 	select
 		T.rowid - 1,
 		start,
 		match
-	from regex_find_all("(.)", T.c1)
+	from regex_find_all('.', T.row)
 	join T
 ),
-X as materialized (select row, col from W where value = "X"),
-M as materialized (select row, col from W where value = "M"),
-A as materialized (select row, col from W where value = "A"),
-S as materialized (select row, col from W where value = "S")
+X as materialized (select r, c from P where v = 'X'),
+M as materialized (select r, c from P where v = 'M'),
+A as materialized (select r, c from P where v = 'A'),
+S as materialized (select r, c from P where v = 'S'),
 
--- solve
-select count(*) from (
-	select *
-		from A
-		join M as M1
-		join M as M2
-		join S as S1
-		join S as S2
-		join (values (1), (-1)) as D1
-		join (values (1), (-1)) as D2
-	where (
-		--
-		M1.col = A.col + D1.column1 and
-		M1.row = A.row + D1.column1 and
-		--
-		S1.col = A.col - D1.column1 and
-		S1.row = A.row - D1.column1 and
-		--
-		M2.col = A.col + D2.column1 and
-		M2.row = A.row - D2.column1 and
-		--
-		S2.col = A.col - D2.column1 and
-		S2.row = A.row + D2.column1
-	)
-);
+-- D is the directions for the searches
+D(a, b) as (
+	values
+		( 1,  1),
+		( 1, -1),
+		(-1, -1),
+		(-1,  1)
+)
+
+select count(*)
+	from A
+	join M as M1
+	join M as M2
+	join S as S1
+	join S as S2
+	join D
+where (
+	M1.r = A.r + a and M1.c = A.c + a and
+	S1.r = A.r - a and S1.c = A.c - a and
+
+	M2.r = A.r + b and M2.c = A.c - b and
+	S2.r = A.r - b and S2.c = A.c + b
+)
+
