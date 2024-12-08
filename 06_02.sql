@@ -16,7 +16,7 @@ M(x, y, v) as materialized (
 		R.start,
 		T.rowid - 1,
 		R.match
-	from regex_find_all(".", T.row) as R
+	from regex_find_all('.', T.row) as R
 	join T
 ),
 
@@ -91,4 +91,4 @@ select (
 	-- find number of guards that walked off the map
 	select count(*) from N
 	where (x+dx, y+dy) not in (select x, y from M)
-) as result;
+);

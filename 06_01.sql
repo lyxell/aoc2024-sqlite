@@ -16,7 +16,7 @@ M(x, y, v) as materialized (
 		R.start,
 		T.rowid - 1,
 		R.match
-	from regex_find_all(".", T.row) as R
+	from regex_find_all('.', T.row) as R
 	join T
 ),
 
@@ -42,6 +42,6 @@ S(x, y, dx, dy) as (
 	where (x+dx, y+dy, '#') in M
 )
 
-select count(*) as result from (
+select count(*) from (
 	select distinct x, y from S
 );
