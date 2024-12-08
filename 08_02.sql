@@ -1,4 +1,4 @@
-create table T (c1 text) strict;
+create table T (row text) strict;
 .import 08_input.txt T
 .load ./regex0.so
 .mode box
@@ -10,13 +10,13 @@ with
 --
 -- x is the column index
 -- y is the row index
--- c is the char at (x, y)
-M(x, y, c) as materialized (
+-- v is the char at (x, y)
+M(x, y, v) as materialized (
 	select
 		R.start,
 		T.rowid - 1,
 		R.match
-	from regex_find_all(".", T.c1) as R
+	from regex_find_all(".", T.row) as R
 	join T
 )
 
@@ -26,8 +26,8 @@ select count(*) from (
 		(M1.y + (M1.y - M2.y) * X.value) as py
 	from M as M1
 	join M as M2 on
-		M1.c = M2.c and
-		M1.c != '.' and
+		M1.v = M2.v and
+		M1.v != '.' and
 		(M1.x != M2.x or M1.y != M2.y)
 	join generate_series(0, (select max(max(x),max(y)) from M)) as X
 	where
