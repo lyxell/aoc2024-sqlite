@@ -8,15 +8,15 @@ with
 
 -- M is the parsed map
 --
--- mx is the column index
--- my is the row index
--- mc is the char at (x, y)
-M(mx, my, mc) as materialized (
+-- x is the column index
+-- y is the row index
+-- c is the char at (x, y)
+M(x, y, c) as materialized (
 	select
 		R.start,
 		T.rowid - 1,
 		R.match
-	from regex_find_all("(.)", T.c1) as R
+	from regex_find_all(".", T.c1) as R
 	join T
 ),
 
@@ -30,7 +30,7 @@ M(mx, my, mc) as materialized (
 -- dx, dy is the direction vector of the guard
 S(x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select mx, my, 0, -1 from M where mc = '^'
+	select x, y, 0, -1 from M where c = '^'
 
 	-- case: the next tile is walkable
 	union
@@ -48,7 +48,7 @@ S(x, y, dx, dy) as (
 -- O contains the tiles where we will place obstacles
 O(ox, oy) as (
 	select distinct x, y from S
-	except select mx, my from M where mc = '^'
+	except select x, y from M where c = '^'
 ),
 
 -- N is the recursive solver for the guard walks with
@@ -59,7 +59,7 @@ O(ox, oy) as (
 -- dx, dy is the direction vector of the guard
 N(ox, oy, x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select ox, oy, mx, my, 0, -1 from M join O where mc = '^'
+	select ox, oy, x, y, 0, -1 from M join O where c = '^'
 
 	-- case: the next tile is walkable
 	union
@@ -83,7 +83,7 @@ N(ox, oy, x, y, dx, dy) as (
 
 -- B is the map bounds
 B(x, y) as (
-	select mx, my from M
+	select x, y from M
 )
 
 select (

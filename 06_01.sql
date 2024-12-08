@@ -8,15 +8,15 @@ with
 
 -- M is the parsed map
 --
--- mx is the column index
--- my is the row index
--- mc is the char at (x, y)
-M(mx, my, mc) as materialized (
+-- x is the column index
+-- y is the row index
+-- c is the char at (x, y)
+M(x, y, c) as materialized (
 	select
 		R.start,
 		T.rowid - 1,
 		R.match
-	from regex_find_all("(.)", T.c1) as R
+	from regex_find_all(".", T.c1) as R
 	join T
 ),
 
@@ -26,7 +26,7 @@ M(mx, my, mc) as materialized (
 -- dx, dy is the direction vector for the guard
 S(x, y, dx, dy) as (
 	-- case: base case, guard is walking in direction (0, -1)
-	select mx, my, 0, -1 from M where mc = '^'
+	select x, y, 0, -1 from M where c = '^'
 
 	-- case: the next tile is walkable
 	union
