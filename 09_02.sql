@@ -30,14 +30,17 @@ E(c, start, end, type) as materialized (
 	)
 ),
 
+-- space blocks
 S(sc, start, end, size, type) as (
 	select (c-1)/2, start, end, end - start, type from E where type == 'empty'
 ),
 
+-- data blocks
 D(dc, start, end, size, type) as (
 	select c/2, start, end, end - start, type from E where type == 'data' order by c desc
 ),
 
+-- data blocks divided by sizes
 D9(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where size = 9),
 D8(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where size = 8),
 D7(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where size = 7),
@@ -53,12 +56,12 @@ D1(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where s
 -- I don't really see any other solution.
 --
 -- At least this gives us a linear time algorithm.
-X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
+X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 	select size, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL from S where sc = 0
 
-	-- case: pick 1
+	-- case: pick the next data block of size 1
 	union all
-	select space_left-1, so+1, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1+1, D1.dc as c from X
+	select space_left-1, offset+1, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1+1, D1.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -79,9 +82,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D1.dc > D2.dc) and
 		(D1.dc is not null)
 
-	-- case: pick 2
+	-- case: pick the next data block of size 2
 	union all
-	select space_left-2, so+2, sc, p9, p8, p7, p6, p5, p4, p3, p2+1, p1, D2.dc as c from X
+	select space_left-2, offset+2, sc, p9, p8, p7, p6, p5, p4, p3, p2+1, p1, D2.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -102,9 +105,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is not null) and
 		(D1.dc is null or D2.dc > D1.dc)
 
-	-- case: pick 3
+	-- case: pick the next data block of size 3
 	union all
-	select space_left-3, so+3, sc, p9, p8, p7, p6, p5, p4, p3+1, p2, p1, D3.dc as c from X
+	select space_left-3, offset+3, sc, p9, p8, p7, p6, p5, p4, p3+1, p2, p1, D3.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -125,9 +128,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D3.dc > D2.dc) and
 		(D1.dc is null or D3.dc > D1.dc)
 
-	-- case: pick 4
+	-- case: pick the next data block of size 4
 	union all
-	select space_left-4, so+4, sc, p9, p8, p7, p6, p5, p4+1, p3, p2, p1, D4.dc as c from X
+	select space_left-4, offset+4, sc, p9, p8, p7, p6, p5, p4+1, p3, p2, p1, D4.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -148,9 +151,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D4.dc > D2.dc) and
 		(D1.dc is null or D4.dc > D1.dc)
 
-	-- case: pick 5
+	-- case: pick the next data block of size 5
 	union all
-	select space_left-5, so+5, sc, p9, p8, p7, p6, p5+1, p4, p3, p2, p1, D5.dc as c from X
+	select space_left-5, offset+5, sc, p9, p8, p7, p6, p5+1, p4, p3, p2, p1, D5.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -171,9 +174,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D5.dc > D2.dc) and
 		(D1.dc is null or D5.dc > D1.dc)
 
-	-- case: pick 6
+	-- case: pick the next data block of size 6
 	union all
-	select space_left-6, so+6, sc, p9, p8, p7, p6+1, p5, p4, p3, p2, p1, D6.dc as c from X
+	select space_left-6, offset+6, sc, p9, p8, p7, p6+1, p5, p4, p3, p2, p1, D6.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -194,9 +197,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D6.dc > D2.dc) and
 		(D1.dc is null or D6.dc > D1.dc)
 
-	-- case: pick 7
+	-- case: pick the next data block of size 7
 	union all
-	select space_left-7, so+7, sc, p9, p8, p7+1, p6, p5, p4, p3, p2, p1, D7.dc as c from X
+	select space_left-7, offset+7, sc, p9, p8, p7+1, p6, p5, p4, p3, p2, p1, D7.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -217,9 +220,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D7.dc > D2.dc) and
 		(D1.dc is null or D7.dc > D1.dc)
 
-	-- case: pick 8
+	-- case: pick the next data block of size 8
 	union all
-	select space_left-8, so+8, sc, p9, p8+1, p7, p6, p5, p4, p3, p2, p1, D8.dc as c from X
+	select space_left-8, offset+8, sc, p9, p8+1, p7, p6, p5, p4, p3, p2, p1, D8.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -240,9 +243,9 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D8.dc > D2.dc) and
 		(D1.dc is null or D8.dc > D1.dc)
 
-	-- case: pick 9
+	-- case: pick the next data block of size 9
 	union all
-	select space_left-9, so+9, sc, p9+1, p8, p7, p6, p5, p4, p3, p2, p1, D9.dc as c from X
+	select space_left-9, offset+9, sc, p9+1, p8, p7, p6, p5, p4, p3, p2, p1, D9.dc as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -263,7 +266,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D2.dc is null or D9.dc > D2.dc) and
 		(D1.dc is null or D9.dc > D1.dc)
 
-	-- case: increment sc
+	-- case: move on to the next space block
 	union all
 	select S.size, 0, S.sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, NULL from X
 	left join D9 on D9.dc > X.sc and D9.idx = X.p9 and space_left >= 9
@@ -291,8 +294,8 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 F as (
 	select	
 		D.dc,
-		coalesce(S.start + X.so - D.size, D.start) as start,
-		coalesce(S.start + X.so, D.end)	as end
+		coalesce(S.start + X.offset - D.size, D.start) as start,
+		coalesce(S.start + X.offset, D.end)	as end
 	from D
 	left join X on D.dc = X.dc
 	left join S on S.sc = X.sc
