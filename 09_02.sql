@@ -77,7 +77,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D4.dc is null or D1.dc > D4.dc) and
 		(D3.dc is null or D1.dc > D3.dc) and
 		(D2.dc is null or D1.dc > D2.dc) and
-		(D1.dc is not null           )
+		(D1.dc is not null)
 
 	-- case: pick 2
 	union all
@@ -99,7 +99,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D5.dc is null or D2.dc > D5.dc) and
 		(D4.dc is null or D2.dc > D4.dc) and
 		(D3.dc is null or D2.dc > D3.dc) and
-		(D2.dc is not null           ) and
+		(D2.dc is not null) and
 		(D1.dc is null or D2.dc > D1.dc)
 
 	-- case: pick 3
@@ -121,7 +121,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D6.dc is null or D3.dc > D6.dc) and
 		(D5.dc is null or D3.dc > D5.dc) and
 		(D4.dc is null or D3.dc > D4.dc) and
-		(D3.dc is not null           ) and
+		(D3.dc is not null) and
 		(D2.dc is null or D3.dc > D2.dc) and
 		(D1.dc is null or D3.dc > D1.dc)
 
@@ -143,7 +143,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D7.dc is null or D4.dc > D7.dc) and
 		(D6.dc is null or D4.dc > D6.dc) and
 		(D5.dc is null or D4.dc > D5.dc) and
-		(D4.dc is not null           ) and
+		(D4.dc is not null) and
 		(D3.dc is null or D4.dc > D3.dc) and
 		(D2.dc is null or D4.dc > D2.dc) and
 		(D1.dc is null or D4.dc > D1.dc)
@@ -165,7 +165,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D8.dc is null or D5.dc > D8.dc) and
 		(D7.dc is null or D5.dc > D7.dc) and
 		(D6.dc is null or D5.dc > D6.dc) and
-		(D5.dc is not null           ) and
+		(D5.dc is not null) and
 		(D4.dc is null or D5.dc > D4.dc) and
 		(D3.dc is null or D5.dc > D3.dc) and
 		(D2.dc is null or D5.dc > D2.dc) and
@@ -187,7 +187,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 		(D9.dc is null or D6.dc > D9.dc) and
 		(D8.dc is null or D6.dc > D8.dc) and
 		(D7.dc is null or D6.dc > D7.dc) and
-		(D6.dc is not null           ) and
+		(D6.dc is not null) and
 		(D5.dc is null or D6.dc > D5.dc) and
 		(D4.dc is null or D6.dc > D4.dc) and
 		(D3.dc is null or D6.dc > D3.dc) and
@@ -289,7 +289,7 @@ X(space_left, so, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 ),
 
 F as (
-	SELECT
+	select	
 		D.dc,
 		coalesce(S.start + X.so - D.size, D.start) as start,
 		coalesce(S.start + X.so, D.end)	as end
