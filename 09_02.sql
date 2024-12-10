@@ -31,11 +31,11 @@ E(c, start, end, type) as materialized (
 ),
 
 S(sc, start, end, size, type) as (
-	select (c-1)/2, start, end, end - start, type from E where type == "empty"
+	select (c-1)/2, start, end, end - start, type from E where type == 'empty'
 ),
 
 D(dc, start, end, size, type) as (
-	select c/2, start, end, end - start, type from E where type == "data" order by c desc
+	select c/2, start, end, end - start, type from E where type == 'data' order by c desc
 ),
 
 D9(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where size = 9),
