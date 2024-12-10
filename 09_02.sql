@@ -56,12 +56,18 @@ D1(idx, dc) as (select row_number() over (order by dc desc)-1, dc from D where s
 -- I don't really see any other solution.
 --
 -- At least this gives us a linear time algorithm.
-X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
-	select size, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL from S where sc = 0
+--
+-- space_left is the number of unclaimed bits in the current space block
+-- offset is the number of claimed bits in the current space block
+-- sc is the index of the current space block
+-- dc is the index of the picked data block
+-- p9, p8, ..., p1 are the number of picked data blocks of each size
+X(space_left, offset, sc, dc, p9, p8, p7, p6, p5, p4, p3, p2, p1) as (
+	select size, 0, 0, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0 from S where sc = 0
 
 	-- case: pick the next data block of size 1
 	union all
-	select space_left-1, offset+1, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1+1, D1.dc as c from X
+	select space_left-1, offset+1, sc, D1.dc, p9, p8, p7, p6, p5, p4, p3, p2, p1+1 as c from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -84,7 +90,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 2
 	union all
-	select space_left-2, offset+2, sc, p9, p8, p7, p6, p5, p4, p3, p2+1, p1, D2.dc as c from X
+	select space_left-2, offset+2, sc, D2.dc, p9, p8, p7, p6, p5, p4, p3, p2+1, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -107,7 +113,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 3
 	union all
-	select space_left-3, offset+3, sc, p9, p8, p7, p6, p5, p4, p3+1, p2, p1, D3.dc as c from X
+	select space_left-3, offset+3, sc, D3.dc as c, p9, p8, p7, p6, p5, p4, p3+1, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -130,7 +136,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 4
 	union all
-	select space_left-4, offset+4, sc, p9, p8, p7, p6, p5, p4+1, p3, p2, p1, D4.dc as c from X
+	select space_left-4, offset+4, sc, D4.dc as c, p9, p8, p7, p6, p5, p4+1, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -153,7 +159,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 5
 	union all
-	select space_left-5, offset+5, sc, p9, p8, p7, p6, p5+1, p4, p3, p2, p1, D5.dc as c from X
+	select space_left-5, offset+5, sc, D5.dc as c, p9, p8, p7, p6, p5+1, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -176,7 +182,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 6
 	union all
-	select space_left-6, offset+6, sc, p9, p8, p7, p6+1, p5, p4, p3, p2, p1, D6.dc as c from X
+	select space_left-6, offset+6, sc, D6.dc as c, p9, p8, p7, p6+1, p5, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -199,7 +205,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 7
 	union all
-	select space_left-7, offset+7, sc, p9, p8, p7+1, p6, p5, p4, p3, p2, p1, D7.dc as c from X
+	select space_left-7, offset+7, sc, D7.dc as c, p9, p8, p7+1, p6, p5, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -222,7 +228,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 8
 	union all
-	select space_left-8, offset+8, sc, p9, p8+1, p7, p6, p5, p4, p3, p2, p1, D8.dc as c from X
+	select space_left-8, offset+8, sc, D8.dc as c, p9, p8+1, p7, p6, p5, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -245,7 +251,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: pick the next data block of size 9
 	union all
-	select space_left-9, offset+9, sc, p9+1, p8, p7, p6, p5, p4, p3, p2, p1, D9.dc as c from X
+	select space_left-9, offset+9, sc, D9.dc as c, p9+1, p8, p7, p6, p5, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > sc and D7.idx = X.p7 and space_left >= 7
@@ -268,7 +274,7 @@ X(space_left, offset, sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, dc) as (
 
 	-- case: move on to the next space block
 	union all
-	select S.size, 0, S.sc, p9, p8, p7, p6, p5, p4, p3, p2, p1, NULL from X
+	select S.size, 0, S.sc, NULL, p9, p8, p7, p6, p5, p4, p3, p2, p1 from X
 	left join D9 on D9.dc > X.sc and D9.idx = X.p9 and space_left >= 9
 	left join D8 on D8.dc > X.sc and D8.idx = X.p8 and space_left >= 8
 	left join D7 on D7.dc > X.sc and D7.idx = X.p7 and space_left >= 7
