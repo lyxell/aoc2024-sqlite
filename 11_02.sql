@@ -20,21 +20,21 @@ S(i, v) as (
 	-- case: v = 0
 	union
 	select i+1, 1 from S
-	where v = 0 and i < 25
+	where v = 0 and i < 75
 
 	-- case: even length
 	union
 	select i+1, cast(substr(v, 0,length(v)/2+1) as integer) from S
-	where length(v) % 2 = 0 and i < 25
+	where length(v) % 2 = 0 and i < 75
 
 	union
 	select i+1, cast(substr(v, length(v)/2+1) as integer) from S
-	where length(v) % 2 = 0 and i < 25
+	where length(v) % 2 = 0 and i < 75
 
 	-- case: otherwise
 	union
 	select i+1, v*2024 from S
-	where v != 0 and length(v) % 2 != 0 and i < 25
+	where v != 0 and length(v) % 2 != 0 and i < 75
 
 ),
 
@@ -48,7 +48,7 @@ Q(n, i, v) as (
 
 K(n, j) as (
 	-- base case
-	select 0, jsonb_object('0', jsonb_group_object(S.v, 1))
+	select 0, jsonb_array(jsonb_group_object(S.v, 1))
 	from S
 	where S.i = 0
 
@@ -58,9 +58,9 @@ K(n, j) as (
 		K.n+1,
 		jsonb_set(
 			K.j,
-			printf('$.%d.%d', Q.i+1, 1),
-			coalesce(K.j ->> printf('$.%d.%d', Q.i+1, 1), 0)
-				+ (K.j ->> printf('$.%d.%d', Q.i, 0))
+			printf('$[%d].%d', Q.i+1, 1),
+			coalesce(K.j -> printf('$[%d].%d', Q.i+1, 1), 0)
+				+ (K.j -> printf('$[%d].%d', Q.i, 0))
 		)
 	from K join Q on K.n+1 = Q.n
 	where v = 0
@@ -72,13 +72,13 @@ K(n, j) as (
 		jsonb_set(
 			jsonb_set(
 				K.j,
-				printf('$.%d.%d', Q.i+1, substr(v, length(v)/2+1)),
-				coalesce(K.j ->> printf('$.%d.%d', Q.i+1, substr(v, length(v)/2+1)), 0)
-					+ (K.j ->> printf('$.%d.%d', Q.i, v))
+				printf('$[%d].%d', Q.i+1, substr(v, length(v)/2+1)),
+				coalesce(K.j -> printf('$[%d].%d', Q.i+1, substr(v, length(v)/2+1)), 0)
+					+ (K.j -> printf('$[%d].%d', Q.i, v))
 			),
-			printf('$.%d.%d', Q.i+1, substr(v, 0,length(v)/2+1)),
-			coalesce(K.j ->> printf('$.%d.%d', Q.i+1, substr(v, 0,length(v)/2+1)), 0)
-			+ (K.j ->> printf('$.%d.%d', Q.i, v) * (case when substr(v, 0,length(v)/2+1) = substr(v, length(v)/2+1) then 2 else 1 end))
+			printf('$[%d].%d', Q.i+1, substr(v, 0,length(v)/2+1)),
+			coalesce(K.j -> printf('$[%d].%d', Q.i+1, substr(v, 0,length(v)/2+1)), 0)
+			+ (K.j -> printf('$[%d].%d', Q.i, v) * (case when substr(v, 0,length(v)/2+1) = substr(v, length(v)/2+1) then 2 else 1 end))
 		)
 	from K join Q on K.n+1 = Q.n
 	where v != 0 and length(v) % 2 = 0
@@ -87,11 +87,17 @@ K(n, j) as (
 	union all
 	select
 		K.n+1,
+		-- we set the old key to null here since otherwise
+		-- we get a quadratic algorithm due to copying
 		jsonb_set(
-			K.j,
-			printf('$.%d.%d', Q.i+1, v*2024),
-			coalesce(K.j ->> printf('$.%d.%d', Q.i+1, v*2024), 0)
-				+ (K.j ->> printf('$.%d.%d', Q.i, v))
+			jsonb_set(
+				K.j,
+				printf('$[%d].%d', Q.i+1, v*2024),
+				coalesce(K.j -> printf('$[%d].%d', Q.i+1, v*2024), 0)
+					+ (K.j -> printf('$[%d].%d', Q.i, v))
+			),
+			printf('$[%d]', case when Q.i-2 >= 0 then Q.i-2 else 1000 end),
+			NULL
 		)
 	from K join Q on K.n+1 = Q.n
 	where v != 0 and length(v) % 2 != 0
@@ -102,6 +108,6 @@ R as (
 	select * from K order by n desc limit 1 
 )
 
-select K.value, sum(json_each.value) from R join json_each(R.j ->> printf('$.%d',K.value))
-join generate_series(0, 25) as K
+select K.value, sum(json_each.value) from R join json_each(R.j ->> printf('$[%d]',K.value))
+join generate_series(0, 75) as K
 group by K.value;
